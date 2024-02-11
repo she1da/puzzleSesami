@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Puzzle</title>
+    <style>
+      .board {
+        display: grid;
+        gap: 2px;
+        margin: 20px auto;
+        width: fit-content;
+      }
+      .tile {
+        background-color: #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        position: relative;
+        cursor: pointer;
+        left: 0;
+        transition: left 5s cubic-bezier(0, 0, 1, 1);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="boards-container"></div>
+
+    <script>
+      class Tile {
+        constructor(value, position) {
+          this.value = value;
+          this.position = position;
+        }
+      }
+
+      class Board {
+        constructor(rows, cols) {
+          this.rows = rows;
+          this.cols = cols;
+          this.tiles = [];
+          this.emptyCell = { x: rows - 1, y: cols - 1 };
+          this.shuffleTiles();
+        }
+
+        shuffleTiles() {
+          const numbers = Array.from(
+            { length: this.rows * this.cols - 1 },
+            (_, i) => i + 1
+          );
+          numbers.push(null); // null represents the empty cell
+          numbers.sort(() => Math.random() - 0.5);
+
+          this.tiles = [];
+          for (let i = 0; i < this.rows; i++) {
+            for (let j = 0; j < this.cols; j++) {
+              const position = { x: i, y: j };
+              const value = numbers[i * this.cols + j];
+              this.tiles.push(new Tile(value, position));
+
+              if (value === null) {
+                this.emptyCell = position;
+              }
+            }
+          }
+        }
+
+        isValidMove(x, y) {
+          const dx = Math.abs(this.emptyCell.x - x);
+          const dy = Math.abs(this.emptyCell.y - y);
+          return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+        }
+
+        moveTile(x, y) {
+          if (!this.isValidMove(x, y)) return false;
+
+          const clickedTile = this.tiles.find(
+            (tile) => tile.position.x === x && tile.position.y === y
+          );
+          [
+            clickedTile.value,
+            this.tiles[this.emptyCell.x * this.cols + this.emptyCell.y].value,
+          ] = [
+            this.tiles[this.emptyCell.x * this.cols + this.emptyCell.y].value,
+            clickedTile.value,
+          ];
+          this.emptyCell = { x, y };
+          return true;
+        }
+
+        isSolved() {
+          const result2 = this.tiles.every(
+            (num, i) => i === ress.length - 1 || num < ress[i + 1]
+          );
+
+          for (let i = 0; i < this.tiles.length - 1; i++) {
+            if (this.tiles[i].value !== i + 1) {
+              return false;
+            }
+          }
+          return true;
+        }
+      }
+
+      class UI {
+        constructor(containerId, rows, cols, tileSize) {
+          this.container = document.getElementById(containerId);
+          this.rows = rows;
+          this.cols = cols;
+          this.tileSize = tileSize;
+          this.boards = [];
+
+          this.createBoard();
+          this.container.addEventListener(
+            "click",
+            this.handleTileClick.bind(this)
+          );
+        }
+
+        createBoard() {
+          const board = new Board(this.rows, this.cols);
+          this.boards.push(board);
+          this.renderBoard(board);
+        }
+
+        renderBoard(board) {
+          const boardElement = document.createElement("div");
+          boardElement.classList.add("board");
+          boardElement.style.gridTemplateColumns = `repeat(${this.cols}, ${this.tileSize}px)`;
+          boardElement.innerHTML = this.generateTilesHTML(board);
+          this.container.appendChild(boardElement);
+        }
+
+        generateTilesHTML(board) {
+          return board.tiles
+            .map(
+              (tile) =>
+                `<div class="tile" style="width: ${this.tileSize}px; height: ${
+                  this.tileSize
+                }px;">${tile.value === null ? "" : tile.value}</div>`
+            )
+            .join("");
+        }
+
+        handleTileClick(event) {
+          const tile = event.target;
+          const index = Array.from(tile.parentNode.children).indexOf(tile);
+          const row = Math.floor(index / this.cols);
+          const col = index % this.cols;
+          const boardIndex = Array.from(
+            tile.closest(".board").parentNode.children
+          ).indexOf(tile.closest(".board"));
+          const board = this.boards[boardIndex];
+
+          if (board.moveTile(row, col)) {
+            this.renderOrUpdateBoard(boardIndex, board);
+            if (board.isSolved()) {
+              alert("Congratulations!");
+            }
+          }
+        }
+
+        renderOrUpdateBoard(boardIndex, board) {
+          const boardElement = this.container.children[boardIndex];
+          boardElement.innerHTML = this.generateTilesHTML(board);
+        }
+      }
+      const rows = prompt("Please Enter Number of Rows");
+      const cols = prompt("Please Enter Number of Columns");
+      const tilesSize = prompt("Please Enter the size of tiles");
+
+      const ui = new UI("boards-container", rows, cols, tilesSize);
+    </script>
+  </body>
+</html>
